@@ -17,10 +17,11 @@ init-dir:
 	mkdir -p log
 
 # 各ツールのインストール
-install-tools: install-alp install-pt-query-digest
+install-tools: install-pt-query-digest install-alp
 
 install-alp:
 	wget https://github.com/tkuchiki/alp/releases/download/v1.0.9/alp_linux_amd64.zip
+	sudo apt-get install -y unzip
 	unzip alp_linux_amd64.zip
 	sudo install ./alp /usr/local/bin
 	rm alp
