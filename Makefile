@@ -70,7 +70,7 @@ get-mysqlconf:
 # 現状のログをリポジトリ配下にコピー
 copylog:
 	sudo cat /var/log/nginx/access.log > /home/${ISUCON_USER}/log/nginx-access.log
-	sudo cat /var/log/mysql/slow.log > /home/${ISUCON_USER}/log/slow.log
+#	sudo cat /var/log/mysql/slow.log > /home/${ISUCON_USER}/log/slow.log
 
 # pt-query-digest と alp でログを解析
 # NOTE: alp の -m オプションの引数は適宜変更する
