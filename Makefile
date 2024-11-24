@@ -91,13 +91,13 @@ cleanlog:
 	sudo sh -c "echo > /var/log/nginx/access.log"
 
 # 各デーモンの再起動
-# isucondition.ruby.service は適宜変更する
+# isupipe.ruby.service は適宜変更する
 # memcached.service 入れる場合は以下も追加
 # sudo systemctl restart memcached.service
 restart:
 	sudo systemctl restart nginx
 	sudo systemctl restart mysql
-	sudo systemctl restart isucondition.ruby.service
+	sudo systemctl restart isupipe-ruby.service
 
 # ベンチ回す前の準備
 prepare-bench: set-nginxconf set-mysqlconf restart cleanlog save-log
