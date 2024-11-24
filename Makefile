@@ -59,7 +59,7 @@ get-nginxconf:
 	sudo rsync -rv /etc/nginx/nginx.conf conf/nginx
 	sudo rsync -rv /etc/nginx/sites-enabled/* conf/nginx/sites-enabled
 	sudo rsync -rv /etc/nginx/sites-available/* conf/nginx/sites-available
-	sudo chown ${ISUCON_USER}:${ISUCON_GROUP} conf/nginx.conf
+	sudo chown ${ISUCON_USER}:${ISUCON_GROUP} conf/nginx/nginx.conf
 	sudo chown -R ${ISUCON_USER}:${ISUCON_GROUP} conf/nginx/sites-enabled
 	sudo chown -R ${ISUCON_USER}:${ISUCON_GROUP} conf/nginx/sites-available
 
