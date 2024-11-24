@@ -13,11 +13,12 @@ export MYSQL_GROUP=root
 init: init-dir get-nginxconf get-mysqlconf
 
 init-dir:
-	mkdir -p conf
+	mkdir -p conf/nginx/sites-enabled
+	mkdir -p conf/nginx/sites-available
 	mkdir -p log
 
 # 各ツールのインストール
-install-tools: install-pt-query-digest install-alp
+install-tools: install-pt-query-digest install-alp install-command
 
 install-alp:
 	wget https://github.com/tkuchiki/alp/releases/download/v1.0.9/alp_linux_amd64.zip
@@ -31,13 +32,16 @@ install-pt-query-digest:
 	sudo apt-get update
 	sudo apt-get install -y percona-toolkit
 
+install-command:
+	sudo apt-get install -y rsync
+
 # 必要なら実行
 # デフォルト 11211 ポート
 # ※ Ruby の場合は Gemfile に gem 'dalli' を追加するなどクライアントのダウンロード別途必要
 install-memcached:
 	sudo apt install memcached
 
-# 適宜書き換える
+# 本番のサーバー構成に合わせて適宜書き換える
 set-nginxconf:
 	sudo rsync -rv conf/nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo rsync -rv conf/nginx/sites-enabled/* /etc/nginx/sites-enabled/*
@@ -50,6 +54,7 @@ set-mysqlconf:
 	sudo rsync -rv conf/mysqld.cnf /etc/mysql/mysql.conf.d
 	sudo chown ${MYSQL_USER}:${MYSQL_GROUP} /etc/mysql/mysql.conf.d/mysqld.cnf
 
+# 本番のサーバー構成に合わせて適宜書き換える
 get-nginxconf:
 	sudo rsync -rv /etc/nginx/nginx.conf conf/
 	sudo rsync -rv /etc/nginx/sites-enabled/* conf/nginx/sites-enabled/*
