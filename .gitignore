@@ -1,0 +1,6 @@
+bench
+go
+local
+.*
+!.gitignore
+debian.cnf
