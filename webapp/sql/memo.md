@@ -13,5 +13,9 @@ ALTER TABLE `themes` ADD INDEX `idx_user_id` (`user_id`);
 ---
 
 ```bash
+$ mysql -uisucon -D isudns -p
+```
 
+```sql
+ALTER TABLE `records` ADD INDEX `idx_name` (`name`);
 ```
