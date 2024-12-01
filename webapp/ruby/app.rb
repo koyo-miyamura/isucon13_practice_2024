@@ -17,6 +17,11 @@ module Isupipe
     set :sessions, domain: 'u.isucon.local', path: '/', expire_after: 1000*60
     set :session_secret, ENV.fetch('ISUCON13_SESSION_SECRETKEY', 'isucon13_session_cookiestore_defaultsecret').unpack('H*')[0]
 
+    configure :development, :production do
+      logger = Logger.new($stdout)
+      set :logger, logger
+    end
+
     POWERDNS_SUBDOMAIN_ADDRESS = ENV.fetch('ISUCON13_POWERDNS_SUBDOMAIN_ADDRESS')
 
     DEFAULT_SESSION_ID_KEY = 'SESSIONID'
