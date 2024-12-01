@@ -733,13 +733,15 @@ module Isupipe
     get '/api/user/:username/icon' do
       username = params[:username]
 
-      image = db_transaction do |tx|
-        user = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
-        unless user
-          raise HttpError.new(404, 'not found user that has the given username')
-        end
-        tx.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
+      user = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
+      unless user
+        raise HttpError.new(404, 'not found user that has the given username')
       end
+
+      image = tx.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
+
+      # 一旦ログ出す
+      logger.info(request.env['HTTP_IF_NONE_MATCH'])
 
       content_type 'image/jpeg'
       if image
@@ -765,10 +767,11 @@ module Isupipe
 
       req = decode_request_body(PostIconRequest)
       image = Base64.decode64(req.image)
+      icon_hash = Digest::SHA256.hexdigest(image)
 
       icon_id = db_transaction do |tx|
         tx.xquery('DELETE FROM icons WHERE user_id = ?', user_id)
-        tx.xquery('INSERT INTO icons (user_id, image) VALUES (?, ?)', user_id, image)
+        tx.xquery('INSERT INTO icons (user_id, image, icon_hash) VALUES (?, ?, ?)', user_id, image, icon_hash)
         tx.last_id
       end
 
