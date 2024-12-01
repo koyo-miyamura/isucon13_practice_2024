@@ -200,9 +200,7 @@ module Isupipe
 
     # top
     get '/api/tag' do
-      tag_models = db_transaction do |tx|
-        tx.query('SELECT * FROM tags')
-      end
+      tag_models = db_conn.query('SELECT * FROM tags')
 
       json(
         tags: tag_models.map { |tag_model|
@@ -220,12 +218,12 @@ module Isupipe
 
       username = params[:username]
 
-      theme_model = db_transaction do |tx|
-        user_model = tx.xquery('SELECT id FROM users WHERE name = ?', username).first
+      theme_model = begin
+        user_model = db_conn.xquery('SELECT id FROM users WHERE name = ?', username).first
         unless user_model
           raise HttpError.new(404)
         end
-        tx.xquery('SELECT * FROM themes WHERE user_id = ?', user_model.fetch(:id)).first
+        db_conn.xquery('SELECT * FROM themes WHERE user_id = ?', user_model.fetch(:id)).first
       end
 
       json(
@@ -309,13 +307,13 @@ module Isupipe
     get '/api/livestream/search' do
       key_tag_name = params[:tag] || ''
 
-      livestreams = db_transaction do |tx|
+      livestreams = begin
         livestream_models =
           if key_tag_name != ''
             # タグによる取得
-            tag_id_list = tx.xquery('SELECT id FROM tags WHERE name = ?', key_tag_name, as: :array).map(&:first)
-            tx.xquery('SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC', tag_id_list).map do |key_tagged_livestream|
-              tx.xquery('SELECT * FROM livestreams WHERE id = ?', key_tagged_livestream.fetch(:livestream_id)).first
+            tag_id_list = db_conn.xquery('SELECT id FROM tags WHERE name = ?', key_tag_name, as: :array).map(&:first)
+            db_conn.xquery('SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC', tag_id_list).map do |key_tagged_livestream|
+              db_conn.xquery('SELECT * FROM livestreams WHERE id = ?', key_tagged_livestream.fetch(:livestream_id)).first
             end
           else
             # 検索条件なし
@@ -326,11 +324,11 @@ module Isupipe
               query = "#{query} LIMIT #{limit}"
             end
 
-            tx.xquery(query).to_a
+            db_conn.xquery(query).to_a
           end
 
         livestream_models.map do |livestream_model|
-          fill_livestream_response(tx, livestream_model)
+          fill_livestream_response(db_conn, livestream_model)
         end
       end
 
@@ -348,9 +346,9 @@ module Isupipe
         raise HttpError.new(401)
       end
 
-      livestreams = db_transaction do |tx|
-        tx.xquery('SELECT * FROM livestreams WHERE user_id = ?', user_id).map do |livestream_model|
-          fill_livestream_response(tx, livestream_model)
+      livestreams = begin
+        db_conn.xquery('SELECT * FROM livestreams WHERE user_id = ?', user_id).map do |livestream_model|
+          fill_livestream_response(db_conn, livestream_model)
         end
       end
 
@@ -361,14 +359,14 @@ module Isupipe
       verify_user_session!
       username = params[:username]
 
-      livestreams = db_transaction do |tx|
-        user = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
+      livestreams = begin
+        user = db_conn.xquery('SELECT * FROM users WHERE name = ?', username).first
         unless user
           raise HttpError.new(404, 'user not found')
         end
 
-        tx.xquery('SELECT * FROM livestreams WHERE user_id = ?', user.fetch(:id)).map do |livestream_model|
-          fill_livestream_response(tx, livestream_model)
+        db_conn.xquery('SELECT * FROM livestreams WHERE user_id = ?', user.fetch(:id)).map do |livestream_model|
+          fill_livestream_response(db_conn, livestream_model)
         end
       end
 
@@ -389,10 +387,8 @@ module Isupipe
 
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      db_transaction do |tx|
-        created_at = Time.now.to_i
-        tx.xquery('INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)', user_id, livestream_id, created_at)
-      end
+      created_at = Time.now.to_i
+      db_conn.xquery('INSERT INTO livestream_viewers_history (user_id, livestream_id, created_at) VALUES(?, ?, ?)', user_id, livestream_id, created_at)
 
       ''
     end
@@ -411,9 +407,7 @@ module Isupipe
 
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      db_transaction do |tx|
-        tx.xquery('DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?', user_id, livestream_id)
-      end
+      db_conn.xquery('DELETE FROM livestream_viewers_history WHERE user_id = ? AND livestream_id = ?', user_id, livestream_id)
 
       ''
     end
@@ -424,13 +418,13 @@ module Isupipe
 
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      livestream = db_transaction do |tx|
-        livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
+      livestream = begin
+        livestream_model = db_conn.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
         unless livestream_model
           raise HttpError.new(404)
         end
 
-        fill_livestream_response(tx, livestream_model)
+        fill_livestream_response(db_conn, livestream_model)
       end
 
       json(livestream)
@@ -451,14 +445,14 @@ module Isupipe
 
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      reports = db_transaction do |tx|
-        livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
+      reports = begin
+        livestream_model = db_conn.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
         if livestream_model.fetch(:user_id) != user_id
           raise HttpError.new(403, "can't get other streamer's livecomment reports")
         end
 
-        tx.xquery('SELECT * FROM livecomment_reports WHERE livestream_id = ?', livestream_id).map do |report_model|
-          fill_livecomment_report_response(tx, report_model)
+        db_conn.xquery('SELECT * FROM livecomment_reports WHERE livestream_id = ?', livestream_id).map do |report_model|
+          fill_livecomment_report_response(db_conn, report_model)
         end
       end
 
@@ -470,7 +464,7 @@ module Isupipe
       verify_user_session!
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      livecomments = db_transaction do |tx|
+      livecomments = begin
         query = 'SELECT * FROM livecomments WHERE livestream_id = ? ORDER BY created_at DESC'
         limit_str = params[:limit] || ''
         if limit_str != ''
@@ -478,8 +472,8 @@ module Isupipe
           query = "#{query} LIMIT #{limit}"
         end
 
-        tx.xquery(query, livestream_id).map do |livecomment_model|
-          fill_livecomment_response(tx, livecomment_model)
+        db_conn.xquery(query, livestream_id).map do |livecomment_model|
+          fill_livecomment_response(db_conn, livecomment_model)
         end
       end
 
@@ -499,9 +493,7 @@ module Isupipe
 
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      ng_words = db_transaction do |tx|
-        tx.xquery('SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC', user_id, livestream_id).to_a
-      end
+      ng_words = db_conn.xquery('SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC', user_id, livestream_id).to_a
 
       json(ng_words)
     end
@@ -671,7 +663,7 @@ module Isupipe
 
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      reactions = db_transaction do |tx|
+      reactions = begin
         query = 'SELECT * FROM reactions WHERE livestream_id = ? ORDER BY created_at DESC'
         limit_str = params[:limit] || ''
         if limit_str != ''
@@ -679,7 +671,7 @@ module Isupipe
           query = "#{query} LIMIT #{limit}"
         end
 
-        tx.xquery(query, livestream_id).map do |reaction_model|
+        db_conn.xquery(query, livestream_id).map do |reaction_model|
           fill_reaction_response(tx, reaction_model)
         end
       end
@@ -792,12 +784,12 @@ module Isupipe
         raise HttpError.new(401)
       end
 
-      user = db_transaction do |tx|
-        user_model = tx.xquery('SELECT * FROM users WHERE id = ?', user_id).first
+      user = begin
+        user_model = db_conn.xquery('SELECT * FROM users WHERE id = ?', user_id).first
         unless user_model
           raise HttpError.new(404)
         end
-        fill_user_response(tx, user_model)
+        fill_user_response(db_conn, user_model)
       end
 
       json(user)
@@ -854,9 +846,9 @@ module Isupipe
     post '/api/login' do
       req = decode_request_body(LoginRequest)
 
-      user_model = db_transaction do |tx|
+      user_model = begin
         # usernameはUNIQUEなので、whereで一意に特定できる
-        tx.xquery('SELECT * FROM users WHERE name = ?', req.username).first.tap do |user_model|
+        db_conn.xquery('SELECT * FROM users WHERE name = ?', req.username).first.tap do |user_model|
           unless user_model
             raise HttpError.new(401, 'invalid username or password')
           end
@@ -885,13 +877,13 @@ module Isupipe
 
       username = params[:username]
 
-      user = db_transaction do |tx|
-        user_model = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
+      user = begin
+        user_model = db_conn.xquery('SELECT * FROM users WHERE name = ?', username).first
         unless user_model
           raise HttpError.new(404)
         end
 
-        fill_user_response(tx, user_model)
+        fill_user_response(db_conn, user_model)
       end
 
       json(user)
@@ -907,24 +899,24 @@ module Isupipe
       # ユーザごとに、紐づく配信について、累計リアクション数、累計ライブコメント数、累計売上金額を算出
       # また、現在の合計視聴者数もだす
 
-      stats = db_transaction do |tx|
-        user = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
+      stats = begin
+        user = db_conn.xquery('SELECT * FROM users WHERE name = ?', username).first
         unless user
           raise HttpError.new(400)
         end
 
         # ランク算出
-        users = tx.xquery('SELECT * FROM users').to_a
+        users = db_conn.xquery('SELECT * FROM users').to_a
 
         ranking = users.map do |user|
-          reactions = tx.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
+          reactions = db_conn.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
             SELECT COUNT(*) FROM users u
             INNER JOIN livestreams l ON l.user_id = u.id
             INNER JOIN reactions r ON r.livestream_id = l.id
             WHERE u.id = ?
           SQL
 
-          tips = tx.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
+          tips = db_conn.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
             SELECT IFNULL(SUM(l2.tip), 0) FROM users u
             INNER JOIN livestreams l ON l.user_id = u.id
             INNER JOIN livecomments l2 ON l2.livestream_id = l.id
@@ -940,7 +932,7 @@ module Isupipe
         rank = ranking.size - ridx
 
         # リアクション数
-        total_reactions = tx.xquery(<<~SQL, username, as: :array).first[0]
+        total_reactions = db_conn.xquery(<<~SQL, username, as: :array).first[0]
           SELECT COUNT(*) FROM users u
           INNER JOIN livestreams l ON l.user_id = u.id
           INNER JOIN reactions r ON r.livestream_id = l.id
@@ -950,9 +942,9 @@ module Isupipe
         # ライブコメント数、チップ合計
         total_livecomments = 0
         total_tip = 0
-        livestreams = tx.xquery('SELECT * FROM livestreams WHERE user_id = ?', user.fetch(:id))
+        livestreams = db_conn.xquery('SELECT * FROM livestreams WHERE user_id = ?', user.fetch(:id))
         livestreams.each do |livestream|
-          tx.xquery('SELECT * FROM livecomments WHERE livestream_id = ?', livestream.fetch(:id)).each do |livecomment|
+          db_conn.xquery('SELECT * FROM livecomments WHERE livestream_id = ?', livestream.fetch(:id)).each do |livecomment|
             total_tip += livecomment.fetch(:tip)
             total_livecomments += 1
           end
@@ -961,12 +953,12 @@ module Isupipe
         # 合計視聴者数
         viewers_count = 0
         livestreams.each do |livestream|
-          cnt = tx.xquery('SELECT COUNT(*) FROM livestream_viewers_history WHERE livestream_id = ?', livestream.fetch(:id), as: :array).first[0]
+          cnt = db_conn.xquery('SELECT COUNT(*) FROM livestream_viewers_history WHERE livestream_id = ?', livestream.fetch(:id), as: :array).first[0]
           viewers_count += cnt
         end
 
         # お気に入り絵文字
-        favorite_emoji = tx.xquery(<<~SQL, username).first&.fetch(:emoji_name)
+        favorite_emoji = db_conn.xquery(<<~SQL, username).first&.fetch(:emoji_name)
           SELECT r.emoji_name
           FROM users u
           INNER JOIN livestreams l ON l.user_id = u.id
@@ -997,16 +989,16 @@ module Isupipe
       verify_user_session!
       livestream_id = cast_as_integer(params[:livestream_id])
 
-      stats = db_transaction do |tx|
-        unless tx.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
+      stats = begin
+        unless db_conn.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
           raise HttpError.new(400)
         end
 
         # ランク算出
-        ranking = tx.xquery('SELECT * FROM livestreams').map do |livestream|
-          reactions = tx.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?', livestream.fetch(:id), as: :array).first[0]
+        ranking = db_conn.xquery('SELECT * FROM livestreams').map do |livestream|
+          reactions = db_conn.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?', livestream.fetch(:id), as: :array).first[0]
 
-          total_tips = tx.xquery('SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?', livestream.fetch(:id), as: :array).first[0]
+          total_tips = db_conn.xquery('SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?', livestream.fetch(:id), as: :array).first[0]
 
           score = reactions + total_tips
           LivestreamRankingEntry.new(livestream_id: livestream.fetch(:id), score:)
@@ -1016,16 +1008,16 @@ module Isupipe
         rank = ranking.size - ridx
 
 	# 視聴者数算出
-        viewers_count = tx.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
+        viewers_count = db_conn.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN livestream_viewers_history h ON h.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
 
 	# 最大チップ額
-        max_tip = tx.xquery('SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
+        max_tip = db_conn.xquery('SELECT IFNULL(MAX(tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l2.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
 
 	# リアクション数
-        total_reactions = tx.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
+        total_reactions = db_conn.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON r.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
 
 	# スパム報告数
-        total_reports = tx.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
+        total_reports = db_conn.xquery('SELECT COUNT(*) FROM livestreams l INNER JOIN livecomment_reports r ON r.livestream_id = l.id WHERE l.id = ?', livestream_id, as: :array).first[0]
 
         {
           rank:,
@@ -1040,8 +1032,8 @@ module Isupipe
     end
 
     get '/api/payment' do
-      total_tip = db_transaction do |tx|
-        tx.xquery('SELECT IFNULL(SUM(tip), 0) FROM livecomments', as: :array).first[0]
+      total_tip = begin
+        db_conn.xquery('SELECT IFNULL(SUM(tip), 0) FROM livecomments', as: :array).first[0]
       end
 
       json(total_tip:)
