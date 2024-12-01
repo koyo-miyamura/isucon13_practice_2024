@@ -735,8 +735,8 @@ module Isupipe
 
       icon_hash = db_conn.xquery('SELECT icon_hash FROM icons WHERE user_id = ?', user.fetch(:id)).first
 
-      if icon_hash && icon_hash[:icon_hash] && icon_hash[:icon_hash] == request.env['HTTP_IF_NONE_MATCH'].tr('"', '')
-        logger.info('OK! 304 Not Modified')
+      if icon_hash && icon_hash[:icon_hash] && icon_hash[:icon_hash] == request.env['HTTP_IF_NONE_MATCH']&.tr('"', '')
+        # logger.info('OK! 304 Not Modified')
         halt 304
       end
 
