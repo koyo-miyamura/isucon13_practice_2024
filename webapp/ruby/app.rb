@@ -733,10 +733,14 @@ module Isupipe
         raise HttpError.new(404, 'not found user that has the given username')
       end
 
-      image = db_conn.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
+      image_hash = db_conn.xquery('SELECT icon_hash FROM icons WHERE user_id = ?', user.fetch(:id)).first
 
-      # 一旦ログ出す
-      logger.info("HTTP_IF_NONE_MATCH: #{request.env['HTTP_IF_NONE_MATCH']}")
+      if image_hash.tr('"', '') == request.env['HTTP_IF_NONE_MATCH']
+        logger.info('OK! 304 Not Modified')
+        halt 304
+      end
+
+      image = db_conn.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
 
       content_type 'image/jpeg'
       if image
