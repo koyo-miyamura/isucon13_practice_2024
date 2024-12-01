@@ -728,15 +728,15 @@ module Isupipe
     get '/api/user/:username/icon' do
       username = params[:username]
 
-      user = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
+      user = db_conn.xquery('SELECT * FROM users WHERE name = ?', username).first
       unless user
         raise HttpError.new(404, 'not found user that has the given username')
       end
 
-      image = tx.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
+      image = db_conn.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
 
       # 一旦ログ出す
-      logger.info(request.env['HTTP_IF_NONE_MATCH'])
+      logger.info("HTTP_IF_NONE_MATCH: #{request.env['HTTP_IF_NONE_MATCH']}")
 
       content_type 'image/jpeg'
       if image
