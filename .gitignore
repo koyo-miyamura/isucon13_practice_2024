@@ -4,5 +4,5 @@ local
 .*
 !.gitignore
 debian.cnf
-slow.log
-nginx-access.log
+log/slow*.log
+log/nginx-access*.log
