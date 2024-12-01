@@ -672,7 +672,7 @@ module Isupipe
         end
 
         db_conn.xquery(query, livestream_id).map do |reaction_model|
-          fill_reaction_response(tx, reaction_model)
+          fill_reaction_response(db_conn, reaction_model)
         end
       end
 
