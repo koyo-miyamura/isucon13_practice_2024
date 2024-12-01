@@ -76,7 +76,7 @@ copylog:
 # NOTE: alp の -m オプションの引数は適宜変更する
 analyze:
 	pt-query-digest cat /home/${ISUCON_USER}/log/slow.log > /home/${ISUCON_USER}/log/ptqd-result
-	cat /home/${ISUCON_USER}/log/nginx-access.log | alp ltsv -m "/api/player/competition/.*/ranking,/api/organizer/competition/.*/score,/api/organizer/competition/.*/finish,/api/player/player/.*,/api/organizer/player/.*/disqualified" --sort=sum -r > /home/${ISUCON_USER}/log/alp-result
+	cat /home/${ISUCON_USER}/log/nginx-access.log | alp ltsv -m "/api/livestream/.*/livecomment/.*/report,/api/livestream/.*/exit,/api/livestream/.*/livecomment,/api/livestream/.*/ngwords,/api/livestream/.*/reaction,/api/livestream/.*/report,/api/livestream/.*/statistics,/api/livestream/.*/enter,/api/livestream/.*/livecomment,/api/livestream/.*/moderate,/api/livestream/.*/reaction,/api/livestream/reservation,/api/livestream/search,/api/livestream/.*,/api/livestream,/api/user/.*/icon,/api/user/.*/livestream,/api/user/.*/statistics,/api/user/.*/theme,/api/user/me,/api/user/.*" --sort=sum -r > /home/${ISUCON_USER}/log/alp-result
 
 # 現状のログとその解析結果を git 配下にコピー
 save-log:
